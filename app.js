@@ -12,6 +12,7 @@ const openai = new OpenAI({
 });
 
 // ⬇️ Хардкод списку проєктів
+const AUTHOR = "prostoandrei9@gmail.com";
 const projects = [
   {
     name: "Sky Market",
@@ -24,8 +25,7 @@ const projects = [
 ];
 
 // ⬇️ Аргументи
-const AUTHOR = process.argv[2] || "prostoandrei9@gmail.com";
-const SINCE = process.argv[3] || "1 day ago";
+const SINCE = process.argv[2] || "yesterday";
 
 if (!AUTHOR) {
   console.error('Використання: node multi-daily-report.js "Автор" ["Період"]');
@@ -54,8 +54,13 @@ if (!AUTHOR) {
       ).trim();
 
       if (output) {
-        const commits = output.split("\n");
-        allCommits.push({ name: project.name, commits });
+        // Фільтруємо коміти, які містять merge/Merge/merging
+        const commits = output
+          .split("\n")
+          .filter(c => !/merge|merging/i.test(c));
+        if (commits.length > 0) {
+          allCommits.push({ name: project.name, commits });
+        }
       }
     } catch (err) {
       console.error(`❌ Помилка при обробці ${project.name}: ${err.message}`);
@@ -66,6 +71,15 @@ if (!AUTHOR) {
     console.log("❗️ Не знайдено жодного коміту для звіту.");
     return;
   }
+
+  // Додаю вивід комітів по проєктах
+  console.log("\nЗнайдені коміти по проєктах:");
+  allCommits.forEach(project => {
+    console.log(`\n📁 ${project.name}:`);
+    project.commits.forEach(commit => {
+      console.log(`- ${commit}`);
+    });
+  });
 
   const spinner = ora("Генеруємо загальний звіт...").start();
 
@@ -83,7 +97,7 @@ if (!AUTHOR) {
 
     ProjectName: коротко, через кому, що було зроблено.
 
-    Уникай повторів і зайвих вступів типу "вчора я працював над...". Просто по суті.
+    Уникай повторів і зайвих вступів типу "вчора я працював над...". Просто по суті. Вказуй лише найзначніші зміни
 
     Ось коміти для кожного проєкту:
 
